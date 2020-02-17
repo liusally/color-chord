@@ -31,10 +31,10 @@ export default {
         'NCDH', 'KJMG', 'ILHE', 'CDNM'
         ],
       matrix: [
-        [11975,  5871, 8916, 2868],
-        [ 1951, 10048, 2060, 6171],
-        [ 8010, 16145, 8090, 8045],
-        [ 1013,   990,  940, 6907]
+        // [11975,  5871, 8916, 2868],
+        // [ 1951, 10048, 2060, 6171],
+        // [ 8010, 16145, 8090, 8045],
+        // [ 1013,   990,  940, 6907]
       ],
     }
   },
@@ -51,11 +51,44 @@ export default {
     },
     innerRadius: function() {
       return this.outerRadius - 124;
-    }
+    },
+        powerSet() {
+      let powerSet = [];
+      this.palettes.forEach(palette => {
+        if (palette.length > 2) {
+          for (let i = 0; i < palette.length; i++) {
+            const firstChar = palette.charAt(i);
+            for (let j = i + 1; j < palette.length; j++) {
+              const secondChar = palette.charAt(j);
+              powerSet.push(`${firstChar}${secondChar}`);
+            }
+          }
+        } else {
+          powerSet.push(palette);
+        }
+      });
+      console.log("Power set: " + powerSet);
+      return powerSet;
+    },
   },
   created() {
+    this.formMatrix();
   },
   methods: {
+    formMatrix() {
+      console.log(this.powerSet);
+      this.powerSet.forEach(pair => {
+        const index1 = this.charToNumber(pair.charAt(0));
+        const index2 = this.charToNumber(pair.charAt(1));
+        let row1 = this.matrix[index1];
+        if (!row1) row1 = this.matrix[index1] = Array.from({length: 15}).fill(0);
+        let row2 = this.matrix[index2];
+        if (!row2) row2 = this.matrix[index2] = Array.from({length: 15}).fill(0);
+        row1[index2]++;
+        row2[index1]++;
+      });
+      console.log(this.matrix);
+    },
     chord: function(data) {
       return d3.chord()
       .padAngle(.04)
@@ -78,6 +111,10 @@ export default {
       const ribbon = d3.ribbon()
       .radius(this.innerRadius);
       return ribbon(data);
+    },
+    charToNumber(char) {
+      console.log(char);
+      return char.charCodeAt(0) - 65;
     }
   },
 }

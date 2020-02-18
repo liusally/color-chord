@@ -62,7 +62,7 @@ export default {
     innerRadius: function() {
       return this.outerRadius - 124;
     },
-        powerSet() {
+    powerSet() {
       let powerSet = [];
       this.palettes.forEach(palette => {
         if (palette.length > 2) {

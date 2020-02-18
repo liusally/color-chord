@@ -2,12 +2,27 @@
   <div class="chord">
     <svg :viewBox='viewBox' :width='width' :height='height'>
       <g>
-        <g :key='group.index' v-for='group in chords.groups'>
-          <path :fill='color(group.index)' :stroke='color(group.index)' :d='arc(group)'></path>
+        <g :key='group.index' v-for='group in groups' @click="clickGroup(group)">
+          <path :fill='color(group)' :stroke='color(group)' :d='arc(group)'></path>
         </g>
       </g>
       <g fill-opacity='0.67'>
-        <path :key='ch.source.index' v-for='ch in chords' :fill='color(ch.source.index)' :stroke='color(ch.source.index)' :d='ribbon(ch)'></path>
+        <defs>
+          <linearGradient
+                  :key='chordKey(ch, "grad")'
+                  v-for='ch in chords'
+                  :id='chordKey(ch, "grad_id")'
+                  gradientUnits='userSpaceOnUse'
+                  :x1='gradient_x(ch.source)'
+                  :y1='gradient_y(ch.source)'
+                  :x2='gradient_x(ch.target)'
+                  :y2='gradient_y(ch.target)'
+          >
+            <stop offset="0%" :stop-color="color(ch.source, ch.active)"></stop>
+            <stop offset="100%" :stop-color="color(ch.target, ch.active)"></stop>
+          </linearGradient>
+        </defs>
+        <path :key='chordKey(ch)' v-for='ch in chords' :fill='gradient_fill(ch)' :d='ribbon(ch)'></path>
       </g>
     </svg>
   </div>
@@ -15,6 +30,7 @@
 
 <script>
 import * as d3 from 'd3';
+import { colors } from "../constants";
 
 export default {
   name: 'ColorChord',
@@ -31,20 +47,14 @@ export default {
         'NCDH', 'KJMG', 'ILHE', 'CDNM'
         ],
       matrix: [
-        // [11975,  5871, 8916, 2868],
-        // [ 1951, 10048, 2060, 6171],
-        // [ 8010, 16145, 8090, 8045],
-        // [ 1013,   990,  940, 6907]
       ],
+      groups: [],
+      chords: [],
     }
   },
   computed: {
     viewBox: function() {
       return [-this.width / 2, -this.height / 2, this.width, this.height];
-    },
-    chords: function() {
-      const chords = this.chord(this.matrix);
-      return chords;
     },
     outerRadius: function() {
       return Math.min(this.width, this.height) * 0.5;
@@ -67,16 +77,18 @@ export default {
           powerSet.push(palette);
         }
       });
-      console.log("Power set: " + powerSet);
       return powerSet;
     },
   },
   created() {
     this.formMatrix();
+
+    const chords = this.chord(this.matrix);
+    this.groups = chords.groups.map(group => ({...group, active: false}));
+    this.chords = chords.map(chord => ({...chord, active: false}));
   },
   methods: {
     formMatrix() {
-      console.log(this.powerSet);
       this.powerSet.forEach(pair => {
         const index1 = this.charToNumber(pair.charAt(0));
         const index2 = this.charToNumber(pair.charAt(1));
@@ -87,12 +99,11 @@ export default {
         row1[index2]++;
         row2[index1]++;
       });
-      console.log(this.matrix);
     },
     chord: function(data) {
       return d3.chord()
       .padAngle(.04)
-      .sortSubgroups(d3.descending)
+      .sortGroups(d3.descending)
       .sortChords(d3.descending)(data);
     },
     arc: function(data) {
@@ -101,21 +112,49 @@ export default {
       .outerRadius(this.innerRadius + 20);
       return arc(data);
     },
-    color: function(index) {
-      console.log(index);
-      const c = d3.schemeCategory10[index];
-      console.log(c);
-      return c;
+    color: function(data, active=false) {
+      active = data.active ? data.active !== undefined : active;
+      if (active) {
+        const index = data.index;
+        return  colors[this.numberToChar(index)];
+      } else {
+        return '#cccccc';
+      }
+    },
+    gradient_fill: function(chord) {
+      return `url(#${this.chordKey(chord, 'grad_id')})`
     },
     ribbon: function(data) {
       const ribbon = d3.ribbon()
       .radius(this.innerRadius);
       return ribbon(data);
     },
+    gradient_x: function(node_data) {
+        return this.innerRadius * Math.cos((node_data.endAngle-node_data.startAngle)/2 +
+        node_data.startAngle-Math.PI/2);
+    },
+    gradient_y: function(node_data) {
+        return this.innerRadius*Math.sin((node_data.endAngle-node_data.startAngle)/2 +
+        node_data.startAngle-Math.PI/2);
+    },
     charToNumber(char) {
-      console.log(char);
       return char.charCodeAt(0) - 65;
-    }
+    },
+    numberToChar(num) {
+      return String.fromCharCode(num + 65);
+    },
+    chordKey(chord, prefix='ch') {
+      return `${prefix}_${chord.source.index}_${chord.target.index}`;
+    },
+    clickGroup(group) {
+      const toggle = !group.active;
+      group.active = toggle;
+      this.chords.forEach(chord => {
+        if (chord.source.index === group.index) {
+          chord.active = toggle;
+        }
+      });
+    },
   },
 }
 </script>

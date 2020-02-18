@@ -2,8 +2,8 @@
   <div class="chord">
     <svg :viewBox='viewBox' :width='width' :height='height'>
       <g>
-        <g :key='group.index' v-for='group in groups' @click="clickGroup(group)">
-          <path :fill='color(group)' :stroke='color(group)' :d='arc(group)'></path>
+        <g :key='group.index' v-for='group in groups' :fill-opacity='group.active ? 1 : 0.3' @click="clickGroup(group)">
+          <path :fill='groupColor(group)' :stroke='groupColor(group)' :d='arc(group)'></path>
         </g>
       </g>
       <g fill-opacity='0.67'>
@@ -18,8 +18,8 @@
                   :x2='gradient_x(ch.target)'
                   :y2='gradient_y(ch.target)'
           >
-            <stop offset="0%" :stop-color="color(ch.source, ch.active)"></stop>
-            <stop offset="100%" :stop-color="color(ch.target, ch.active)"></stop>
+            <stop offset="0%" :stop-color="chordColor(ch.source, ch.active)"></stop>
+            <stop offset="100%" :stop-color="chordColor(ch.target, ch.active)"></stop>
           </linearGradient>
         </defs>
         <path :key='chordKey(ch)' v-for='ch in chords' :fill='gradient_fill(ch)' :d='ribbon(ch)'></path>
@@ -112,7 +112,12 @@ export default {
       .outerRadius(this.innerRadius + 20);
       return arc(data);
     },
-    color: function(data, active=false) {
+    groupColor: function(group) {
+      const index = group.index;
+      let color = colors[this.numberToChar(index)];
+      return color;
+    },
+    chordColor: function(data, active=false) {
       active = data.active ? data.active !== undefined : active;
       if (active) {
         const index = data.index;
